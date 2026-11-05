@@ -1,6 +1,12 @@
+#include <DHT.h>
+#include <DHT_U.h>
+
 #include <MPS.h>
 #include "config.h"
 
+
+#define DHTPIN 0       
+#define DHTTYPE DHT11
 // ---- Structures de payload ----
 // placer ici vos structures de payloads, par exemple :
 // struct __attribute__((packed)) SomePayload { // __attribute__((packed)) permet de contrôler la disposition des octets de celle-ci
@@ -9,16 +15,30 @@
 // };
 // static_assert(sizeof(SomePayload) == 3, "SomePayload = 3 octets"); // Filet de sécurité à la compilation
 
+DHT dht(DHTPIN, DHTTYPE);
+
 struct __attribute__((packed)) CounterPayload 
 {
   uint32_t value;
 };
 
-static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
+struct __attribute__((packed)) TemperaturePayload
+{
+  float degree; 
+};
+struct __attribute__((packed)) HumidityPayload
+{
+  float humidity; 
+};
 
+static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
+static_assert(sizeof(TemperaturePayload) == 4, "TemperaturePayload = 4 octets");
+static_assert(sizeof(HumidityPayload) == 4, "HumidityPayload = 4 octets");
 // ---- Variables globales ----
 // placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
+static TemperaturePayload degree = {0.0};
+static HumidityPayload humidity = {0.0};
 
 // ---- Subjects ----
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
@@ -27,8 +47,11 @@ constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
 // ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
 constexpr mps::Subject kSubStatusCounter = mps::makeSubject("status_" DEVICE_NAME "_counter");
 constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME "_reset_counter");
-constexpr mps::Subject kSubSetLEDColor = mps::makeSubject("set_" DEVICE_NAME "_LED_color");
-constexpr mps::Subject kSubCmdSwitchLEDState = mps::makeSubject("cmd_" DEVICE_NAME "_LED_state");
+constexpr mps::Subject kSubSetLEDColor = mps::makeSubject("set_" DEVICE_NAME "_led_color");
+constexpr mps::Subject kSubCmdSwitchLEDState = mps::makeSubject("cmd_" DEVICE_NAME "_led_state");
+constexpr mps::Subject kSubStatusDegree = mps::makeSubject("status_" DEVICE_NAME "_degree");
+constexpr mps::Subject kSubStatusHumidity = mps::makeSubject("status_" DEVICE_NAME "_humidity");
+
 
 // ---- Callbacks ----
 // Appelé lors de l'ouverture de la session (callback)
@@ -36,6 +59,8 @@ static void onSessionOpened() {
   Serial.println("Session opened!");
   // republiez ici l’état initial, la passerelle ne garde rien
   MPS.publishValue(kSubStatusCounter, counter);
+  MPS.publishValue(kSubStatusDegree, degree);
+  MPS.publishValue(kSubStatusHumidity, humidity);
 }
 
 // Appelé en cas d'échec d'envoi (callback)
@@ -57,10 +82,7 @@ static void onCmdResetCounter(const mps::FrameView& message, void*)
   MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
 }
 
-static void onCmdSwitchLEDState(const mps::FrameView& message, void*)
-{
-  
-}
+
 
 // ---- Fonctions appelées par setup/loop ----
 // envoi de heartbeats réguliers sans bloquer (comparaison au temps écoulé sans delay())
@@ -98,6 +120,7 @@ void setup() {
 
   // démarrage du client MPS
   if(!MPS.begin(kGatewayMacAddress, DEVICE_NAME, kWifiChannel)) Serial.println("MPS: demarrage impossible");
+  dht.begin();
 }
 
 // Exécutée en boucle (= while(true))
@@ -124,5 +147,16 @@ void loop() {
     lastCounterTimeMs = millis();
     counter.value++;
     MPS.publishValue(kSubStatusCounter, counter);
+    degree.degree = dht.readTemperature();
+    humidity.humidity = dht.readHumidity();
+    MPS.publishValue(kSubStatusDegree, degree);
+    MPS.publishValue(kSubStatusHumidity, humidity);
+
+    Serial.println("temperature");
+    Serial.print(degree.degree);
+    Serial.println(" °C");
+    Serial.println("humidity");
+    Serial.print(degree.degree);
+    Serial.println("%");
   }
 }
