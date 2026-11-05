@@ -1,7 +1,7 @@
 #include <MPS.h>
 #include "config.h"
 
-// ---- Structures de payload ----
+// ---- Structures de payload et filets de sécurité ----
 // placer ici vos structures de payloads, par exemple :
 // struct __attribute__((packed)) SomePayload { // __attribute__((packed)) permet de contrôler la disposition des octets de celle-ci
 //   uint8_t someVariableA;
@@ -14,11 +14,22 @@ struct __attribute__((packed)) CounterPayload
   uint32_t value;
 };
 
+struct __attribute__((packed)) LEDPayload
+{
+  uint8_t isLEDActive;
+  
+  uint8_t redValue;
+  uint8_t greenValue;
+  uint8_t blueValue;
+};
+
 static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
+static_assert(sizeof(LEDPayload) == 4, "LEDPayload = 4 octets");
 
 // ---- Variables globales ----
 // placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
+static LEDPayload LED = {0, 0, 255, 0};
 
 // ---- Subjects ----
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
@@ -27,19 +38,28 @@ constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
 // ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
 constexpr mps::Subject kSubStatusCounter = mps::makeSubject("status_" DEVICE_NAME "_counter");
 constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME "_reset_counter");
-constexpr mps::Subject kSubSetLEDColor = mps::makeSubject("set_" DEVICE_NAME "_LED_color");
-constexpr mps::Subject kSubCmdSwitchLEDState = mps::makeSubject("cmd_" DEVICE_NAME "_LED_state");
+constexpr mps::Subject kSubSetLEDColor = mps::makeSubject("set_" DEVICE_NAME "_led_color");
+constexpr mps::Subject kSubStatusLEDState = mps::makeSubject("status_" DEVICE_NAME "_led_state");
+constexpr mps::Subject kSubCmdSwitchLEDState = mps::makeSubject("cmd_" DEVICE_NAME "_switch_led_state");
 
 // ---- Callbacks ----
 // Appelé lors de l'ouverture de la session (callback)
-static void onSessionOpened() {
+static void onSessionOpened() 
+{
   Serial.println("Session opened!");
+  if (LED.isLEDActive) Serial.println("LED bien activée");
+  else Serial.println("LED inactive");
+  Serial.println("Rouge val :" + String(LED.redValue));
+  Serial.println("Vert val :" + String(LED.greenValue));
+  Serial.println("Bleu val :" + String(LED.blueValue));
   // republiez ici l’état initial, la passerelle ne garde rien
   MPS.publishValue(kSubStatusCounter, counter);
+  MPS.publishValue(kSubStatusLEDState, LED);
 }
 
 // Appelé en cas d'échec d'envoi (callback)
-static void onSendFailed(uint16_t sequenceNumber, uint32_t subjectId, mps::SendFailureReason, mps::AcknowledgementStatus) {
+static void onSendFailed(uint16_t sequenceNumber, uint32_t subjectId, mps::SendFailureReason, mps::AcknowledgementStatus) 
+{
   Serial.printf("/!\\ envoi %u (subject 0x%08lX) perdu\n", sequenceNumber, (unsigned long)subjectId);
 }
 
@@ -59,7 +79,12 @@ static void onCmdResetCounter(const mps::FrameView& message, void*)
 
 static void onCmdSwitchLEDState(const mps::FrameView& message, void*)
 {
-  
+  if (message.payloadLength != 0) return;
+
+  if(LED.isLEDActive == 0) LED.isLEDActive = 1;
+  else LED.isLEDActive = 0;
+
+  MPS.publishValue(kSubStatusLEDState, LED);
 }
 
 // ---- Fonctions appelées par setup/loop ----
@@ -88,6 +113,7 @@ void setup() {
   // par exemple :
   // MPS.on(kSubCmdSomeOrder, onCmdSomeOrder);
   MPS.on(kSubCmdResetCounter, onCmdResetCounter);
+  MPS.on(kSubCmdSwitchLEDState, onCmdSwitchLEDState);
 
   // constante d'adresse vide pour vérifier que l'adresse a été définie dans config.h
   static const uint8_t kUnsetMacAddress[6] = {0, 0, 0, 0, 0, 0};
@@ -123,6 +149,8 @@ void loop() {
   {
     lastCounterTimeMs = millis();
     counter.value++;
+
     MPS.publishValue(kSubStatusCounter, counter);
+    MPS.publishValue(kSubStatusLEDState, LED);
   }
 }

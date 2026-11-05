@@ -5,6 +5,7 @@ const DEVICE_NAME = "sensor_h"
 const SUB_HB = "hb_" + DEVICE_NAME
 const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
 const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
+const SUB_STATUS_LED = "status_" + DEVICE_NAME + "LED"
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
@@ -56,6 +57,10 @@ func on_message(subject_name: String, source_id: int, _payload: PackedByteArray)
 	if subject_name == SUB_STATUS_COUNTER:
 		if _payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
 		%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
+		
+	if subject_name == SUB_STATUS_LED:
+		if _payload.size() != 4: return
+		%LEDActivatedLabel.text = "LED Activated: %s" % _payload.decode_u8(0)
 
 
 func _process(delta: float) -> void:
