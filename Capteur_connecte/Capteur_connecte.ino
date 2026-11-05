@@ -27,6 +27,8 @@ constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
 // ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
 constexpr mps::Subject kSubStatusCounter = mps::makeSubject("status_" DEVICE_NAME "_counter");
 constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME "_reset_counter");
+constexpr mps::Subject kSubSetLEDColor = mps::makeSubject("set_" DEVICE_NAME "_LED_color");
+constexpr mps::Subject kSubCmdSwitchLEDState = mps::makeSubject("cmd_" DEVICE_NAME "_LED_state");
 
 // ---- Callbacks ----
 // Appelé lors de l'ouverture de la session (callback)
@@ -53,6 +55,11 @@ static void onCmdResetCounter(const mps::FrameView& message, void*)
   if (message.payloadLength != 0) return; // ce format n'a pas de payload
   counter.value = 0;
   MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
+}
+
+static void onCmdSwitchLEDState(const mps::FrameView& message, void*)
+{
+  
 }
 
 // ---- Fonctions appelées par setup/loop ----
