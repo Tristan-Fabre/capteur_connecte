@@ -106,12 +106,12 @@ text = "Reset Counter"
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 24.0
-offset_top = 265.0
-offset_right = 154.0
-offset_bottom = 296.0
+offset_top = 264.0
+offset_right = 184.0
+offset_bottom = 295.0
 theme_override_fonts/font = ExtResource("7_edrxy")
 theme_override_font_sizes/font_size = 20
-text = "LED Activated: ∅"
+text = "LED Activated"
 vertical_alignment = 1
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="." unique_id=543816664]
@@ -130,12 +130,13 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 custom_maximum_size = Vector2(150, 50)
 layout_mode = 2
+color = Color(0.7525973, 0.37596384, 0.05460217, 1)
 
 [node name="ButtonLedActive" type="CheckButton" parent="." unique_id=1038510164]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 320.0
-offset_top = 272.0
-offset_right = 364.0
+offset_left = 216.0
+offset_top = 264.0
+offset_right = 260.0
 offset_bottom = 296.0
 button_pressed = true

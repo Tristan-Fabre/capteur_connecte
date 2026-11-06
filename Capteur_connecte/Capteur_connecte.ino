@@ -29,7 +29,7 @@ static_assert(sizeof(LedPayload) == 4, "LedPayload = 4 octets");
 // ---- Variables globales ----
 // placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
-static LedPayload led = {1, 30, 20, 255};
+static LedPayload led = {};
 
 static const uint8_t ledPin = 2;
 
@@ -41,22 +41,14 @@ constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
 constexpr mps::Subject kSubStatusCounter = mps::makeSubject("status_" DEVICE_NAME "_counter");
 constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME "_reset_counter");
 constexpr mps::Subject kSubSetLedColor = mps::makeSubject("set_" DEVICE_NAME "_led_color");
-constexpr mps::Subject kSubStatusLedState = mps::makeSubject("status_" DEVICE_NAME "_led_state");
 constexpr mps::Subject kSubCmdSwitchLedState = mps::makeSubject("cmd_" DEVICE_NAME "_switch_led_state");
 
 // ---- Callbacks ----
 // Appelé lors de l'ouverture de la session (callback)
 static void onSessionOpened() 
 {
-  Serial.println("Session opened!");
-  if (led.isLedActive) Serial.println("LED bien activée");
-  else Serial.println("LED inactive");
-  Serial.println("Rouge val :" + String(led.redValue));
-  Serial.println("Vert val :" + String(led.greenValue));
-  Serial.println("Bleu val :" + String(led.blueValue));
-  // republiez ici l’état initial, la passerelle ne garde rien
+  // Republication de l'état initial du capteur, la passerelle ne garde rien
   MPS.publishValue(kSubStatusCounter, counter);
-  MPS.publishValue(kSubStatusLedState, led);
 }
 
 // Appelé en cas d'échec d'envoi (callback)
@@ -84,8 +76,6 @@ static void onCmdSwitchLedState(const mps::FrameView& message, void*)
   if (message.payloadLength != 1) return;
 
   led.isLedActive = message.payload[0];
-
-  //MPS.publishValue(kSubStatusLedState, led);
 }
 
 static void onSetLedColor(const mps::FrameView& message, void*)
@@ -95,8 +85,6 @@ static void onSetLedColor(const mps::FrameView& message, void*)
   led.redValue = message.payload[0];
   led.greenValue = message.payload[1];
   led.blueValue = message.payload[2];
-
-  //MPS.publishValue(kSubSetLedColor, led)
 }
 
 // ---- Fonctions appelées par setup/loop ----
@@ -148,7 +136,7 @@ void setup()
   // démarrage du client MPS
   if(!MPS.begin(kGatewayMacAddress, DEVICE_NAME, kWifiChannel)) Serial.println("MPS: demarrage impossible");
 
-  rgbLedWrite(ledPin, led.redValue, led.greenValue, led.blueValue);
+  writeLed();
 }
 
 // Exécutée en boucle (= while(true))
@@ -160,7 +148,6 @@ void loop()
   // Appel non bloquant de l'envoi d'HB (polling)
   publishHeartbeat();
   writeLed();
-  Serial.println(led.isLedActive);
   
   // ... ajoutez vos envois de données et autres comportements **non bloquants**
   // par exemple :

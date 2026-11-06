@@ -5,7 +5,6 @@ const DEVICE_NAME = "sensor_h"
 const SUB_HB = "hb_" + DEVICE_NAME
 const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
 const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
-const SUB_STATUS_LED = "status_" + DEVICE_NAME + "_led"
 const SUB_CMD_SWITCH_STATE = "cmd_" + DEVICE_NAME + "_switch_led_state"
 const SUB_SET_LED_COLOR = "set_" + DEVICE_NAME + "_led_color"
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
@@ -31,7 +30,6 @@ func get_subscriptions() -> PackedStringArray:
 	# sans ces lignes, on_message ne reçoit rien
 	subscriptions.append(SUB_HB)
 	subscriptions.append(SUB_STATUS_COUNTER)
-	subscriptions.append(SUB_STATUS_LED)
 	return subscriptions
 
 
@@ -61,11 +59,6 @@ func on_message(subject_name: String, source_id: int, _payload: PackedByteArray)
 	if subject_name == SUB_STATUS_COUNTER:
 		if _payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
 		%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
-		
-	if subject_name == SUB_STATUS_LED:
-		if _payload.size() != 4: return
-		%LEDActivatedLabel.text = "LED Activated: %s" % _payload.decode_u8(0)
-
 
 func _process(delta: float) -> void:
 	_seconds_since_hb += delta
@@ -77,6 +70,10 @@ func _process(delta: float) -> void:
 func _on_sensor_connected():
 	%IDLabel.text = "node_id: %d" % _node_id
 	%ConnectedIcon.state = true
+	
+	# Envoi des données pour l'initialisation
+	_send_led_color(%ColorPickerButton.color)
+	_send_led_state(%ButtonLedActive.button_pressed)
 
 
 func _on_sensor_disconnected():
@@ -91,16 +88,20 @@ func _on_hb(source_id: int):
 	if source_id != _node_id: return
 	_seconds_since_hb = 0.0
 	_connected = true
+	
+func _send_led_color(led_color: Color) -> void:
+	var payload = PackedByteArray([led_color.r8, led_color.g8, led_color.b8])
+	publish(SUB_SET_LED_COLOR, payload, true)
+
+func _send_led_state(is_led_active: bool) -> void:
+	var payload = PackedByteArray([is_led_active])
+	publish(SUB_CMD_SWITCH_STATE, payload, true)
 
 ## @brief Initialise la tuile
 func _ready() -> void:
 	super() # obligatoire : c'est lui qui abonne la tuile
 	
+	# Connexion des signaux
 	%ResetButton.pressed.connect(func(): publish(SUB_CMD_RESET, PackedByteArray(), true))
-	%ColorPickerButton.color_changed.connect(func (led_color: Color): 
-		var payload = PackedByteArray([led_color.r8, led_color.g8, led_color.b8]) # Le tableau a une taille d'un octet par couleur
-		publish(SUB_SET_LED_COLOR, payload, true))
-
-	%ButtonLedActive.toggled.connect(func(is_led_active: bool): 
-		var payload = PackedByteArray([is_led_active]) # Le tableau a une taille d'un octet puisqu'un bool est équivalent un uint8_t
-		publish(SUB_CMD_SWITCH_STATE, payload, true))
+	%ColorPickerButton.color_changed.connect(func (led_color: Color): _send_led_color(led_color))
+	%ButtonLedActive.toggled.connect(func(is_led_active: bool): _send_led_state(is_led_active))
