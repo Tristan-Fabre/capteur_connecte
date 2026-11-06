@@ -9,6 +9,7 @@ const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
 const HB_BLINK_S := 0.5
+const SUB_STATUS_DHT = "status_"+DEVICE_NAME+"_dht"
 
 # ---- VARIABLES ----
 var _node_id: int = -1
@@ -28,6 +29,7 @@ func get_subscriptions() -> PackedStringArray:
 	var subscriptions: PackedStringArray = []
 	subscriptions.append(SUB_HB)
 	subscriptions.append(SUB_STATUS_COUNTER) # sans cette ligne, on_message ne reçoit rien
+	subscriptions.append(SUB_STATUS_DHT)
 	return subscriptions
 
 
@@ -53,9 +55,15 @@ func on_message(subject_name: String, source_id: int, _payload: PackedByteArray)
 	if subject_name == SUB_HB: _on_hb(source_id)
 	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
 	# Ajoutez vos messages à la suite
-	if subject_name == SUB_STATUS_COUNTER:
-		if _payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
-		%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
+	match subject_name:
+		SUB_STATUS_COUNTER:
+			if _payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
+			%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
+		SUB_STATUS_DHT:
+			if _payload.size() != 3: return
+			%TemperatureLabel.text = "Temperature: %d" % (float(_payload.decode_u16(0)) * 0.1)
+			%HumidityLabel.text = "Humidity: %d" % _payload.decode_u8(2)
+	
 
 
 func _process(delta: float) -> void:
@@ -73,6 +81,8 @@ func _on_sensor_connected():
 func _on_sensor_disconnected():
 	%IDLabel.text = "node_id: ∅"
 	%ConnectedIcon.state = false
+	
+
 
 ## @brief Traite un heartbeat : (re)connecte le capteur et relance la temporisation.
 ## @param source_id  Identifiant de l'appareil émetteur.

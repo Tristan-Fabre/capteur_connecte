@@ -101,3 +101,23 @@ offset_right = 328.0
 offset_bottom = 152.0
 theme_override_fonts/font = ExtResource("7_edrxy")
 text = "Reset Counter"
+
+[node name="TemperatureLabel" type="Label" parent="." unique_id=1904130508]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 14.0
+offset_top = 166.0
+offset_right = 152.0
+offset_bottom = 191.0
+text = "Temperature: ∅"
+vertical_alignment = 1
+
+[node name="HumidityLabel" type="Label" parent="." unique_id=504346286]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 15.0
+offset_top = 198.0
+offset_right = 153.0
+offset_bottom = 223.0
+text = "Humidity: ∅"
+vertical_alignment = 1
