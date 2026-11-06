@@ -102,41 +102,22 @@ offset_bottom = 152.0
 theme_override_fonts/font = ExtResource("7_edrxy")
 text = "Reset Counter"
 
-[node name="LEDActivatedLabel" type="Label" parent="." unique_id=1020153136]
+[node name="TemperatureLabel" type="Label" parent="." unique_id=1904130508]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 24.0
-offset_top = 264.0
-offset_right = 184.0
-offset_bottom = 295.0
-theme_override_fonts/font = ExtResource("7_edrxy")
-theme_override_font_sizes/font_size = 20
-text = "LED Activated"
+offset_left = 14.0
+offset_top = 166.0
+offset_right = 152.0
+offset_bottom = 191.0
+text = "Temperature: ∅"
 vertical_alignment = 1
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="." unique_id=543816664]
-layout_mode = 0
-offset_left = 24.0
-offset_top = 312.0
-offset_right = 496.0
-offset_bottom = 362.0
-
-[node name="Label" type="Label" parent="HBoxContainer2" unique_id=2113864287]
-layout_mode = 2
-text = "LED Color"
-
-[node name="ColorPickerButton" type="ColorPickerButton" parent="HBoxContainer2" unique_id=383288993]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 50)
-custom_maximum_size = Vector2(150, 50)
-layout_mode = 2
-color = Color(0.7525973, 0.37596384, 0.05460217, 1)
-
-[node name="ButtonLedActive" type="CheckButton" parent="." unique_id=1038510164]
+[node name="HumidityLabel" type="Label" parent="." unique_id=504346286]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 216.0
-offset_top = 264.0
-offset_right = 260.0
-offset_bottom = 296.0
-button_pressed = true
+offset_left = 15.0
+offset_top = 198.0
+offset_right = 153.0
+offset_bottom = 223.0
+text = "Humidity: ∅"
+vertical_alignment = 1

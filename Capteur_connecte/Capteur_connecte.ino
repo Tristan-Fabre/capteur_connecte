@@ -1,3 +1,6 @@
+#include <DHT.h>
+#include <DHT_U.h>
+
 #include <MPS.h>
 #include "config.h"
 
@@ -9,11 +12,18 @@
 // };
 // static_assert(sizeof(SomePayload) == 3, "SomePayload = 3 octets"); // Filet de sécurité à la compilation
 
+
+
 struct __attribute__((packed)) CounterPayload 
 {
   uint32_t value;
 };
 
+struct __attribute__((packed)) DHTPayload 
+{
+  int16_t degree;
+  uint8_t humidity; 
+};
 struct __attribute__((packed)) LedPayload
 {
   uint8_t isLedActive;
@@ -25,13 +35,16 @@ struct __attribute__((packed)) LedPayload
 
 static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
 static_assert(sizeof(LedPayload) == 4, "LedPayload = 4 octets");
-
+static_assert(sizeof(DHTPayload) == 3, "TemperaturePayload = 3 octets");
 // ---- Variables globales ----
 // placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
+static DHTPayload dhtP = {0, 0};
 static LedPayload led = {};
 
 static const uint8_t ledPin = 2;
+static const uint8_t pinDHT = 0; //variable pour la sortie de pin du DHT
+DHT dht(pinDHT, DHT11); //création de l'objet dht pour lire la température et l'humidité
 
 // ---- Subjects ----
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
@@ -40,6 +53,7 @@ constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
 // ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
 constexpr mps::Subject kSubStatusCounter = mps::makeSubject("status_" DEVICE_NAME "_counter");
 constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME "_reset_counter");
+constexpr mps::Subject kSubStatusDHT = mps::makeSubject("status_" DEVICE_NAME "_dht");
 constexpr mps::Subject kSubSetLedColor = mps::makeSubject("set_" DEVICE_NAME "_led_color");
 constexpr mps::Subject kSubCmdSwitchLedState = mps::makeSubject("cmd_" DEVICE_NAME "_switch_led_state");
 
@@ -49,6 +63,7 @@ static void onSessionOpened()
 {
   // Republication de l'état initial du capteur, la passerelle ne garde rien
   MPS.publishValue(kSubStatusCounter, counter);
+  MPS.publishValue(kSubStatusDHT, dhtP);
 }
 
 // Appelé en cas d'échec d'envoi (callback)
@@ -135,7 +150,7 @@ void setup()
 
   // démarrage du client MPS
   if(!MPS.begin(kGatewayMacAddress, DEVICE_NAME, kWifiChannel)) Serial.println("MPS: demarrage impossible");
-
+  dht.begin();
   writeLed();
 }
 
@@ -166,5 +181,9 @@ void loop()
     counter.value++;
 
     MPS.publishValue(kSubStatusCounter, counter);
+    //on multiplie par 10 pour obtenir la valeur à la dixième près et côté godot on multiplie par 0.1 pour avoir la bonne précision
+    dhtP.degree = (dht.readTemperature() * 10);
+    dhtP.humidity = (dht.readHumidity()*10);
+    MPS.publishValue(kSubStatusDHT, dhtP);
   }
 }

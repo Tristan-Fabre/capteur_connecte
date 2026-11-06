@@ -5,6 +5,7 @@ const DEVICE_NAME = "sensor_h"
 const SUB_HB = "hb_" + DEVICE_NAME
 const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
 const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
+const SUB_STATUS_DHT = "status_"+DEVICE_NAME+"_dht"
 const SUB_CMD_SWITCH_STATE = "cmd_" + DEVICE_NAME + "_switch_led_state"
 const SUB_SET_LED_COLOR = "set_" + DEVICE_NAME + "_led_color"
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
@@ -29,7 +30,8 @@ func get_subscriptions() -> PackedStringArray:
 	var subscriptions: PackedStringArray = []
 	# sans ces lignes, on_message ne reçoit rien
 	subscriptions.append(SUB_HB)
-	subscriptions.append(SUB_STATUS_COUNTER)
+	subscriptions.append(SUB_STATUS_COUNTER) # sans cette ligne, on_message ne reçoit rien
+	subscriptions.append(SUB_STATUS_DHT)
 	return subscriptions
 
 
@@ -56,9 +58,15 @@ func on_message(subject_name: String, source_id: int, _payload: PackedByteArray)
 	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
 	
 	# Ajoutez vos messages à la suite
-	if subject_name == SUB_STATUS_COUNTER:
-		if _payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
-		%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
+	match subject_name:
+		SUB_STATUS_COUNTER:
+			if _payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
+			%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
+		SUB_STATUS_DHT:
+			if _payload.size() != 3: return
+			%TemperatureLabel.text = "Temperature: %.1f °C" % (_payload.decode_u16(0)*0.1)
+			%HumidityLabel.text = "Humidity: %.1f" % (_payload.decode_u8(2)*0.1) +"%"
+	
 
 func _process(delta: float) -> void:
 	_seconds_since_hb += delta
@@ -78,7 +86,11 @@ func _on_sensor_connected():
 
 func _on_sensor_disconnected():
 	%IDLabel.text = "node_id: ∅"
+	%TemperatureLabel.text = "Temperature: ∅" 
+	%HumidityLabel.text = "Humidity: ∅"
 	%ConnectedIcon.state = false
+	
+
 
 ## @brief Traite un heartbeat : (re)connecte le capteur et relance la temporisation.
 ## @param source_id  Identifiant de l'appareil émetteur.
