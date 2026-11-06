@@ -12,10 +12,10 @@
 content_margin_bottom = 1.0
 
 [node name="TileSensorDemo" type="Panel" unique_id=304170558]
-custom_minimum_size = Vector2(336, 336)
-custom_maximum_size = Vector2(336, 336)
-offset_right = 360.0
-offset_bottom = 240.0
+custom_minimum_size = Vector2(500, 500)
+custom_maximum_size = Vector2(500, 500)
+offset_right = 336.0
+offset_bottom = 336.0
 mouse_filter = 2
 theme_override_styles/panel = ExtResource("1_knt6s")
 script = ExtResource("2_r8e5o")
@@ -37,7 +37,7 @@ vertical_alignment = 1
 layout_mode = 0
 offset_left = 16.0
 offset_top = 11.0
-offset_right = 320.0
+offset_right = 488.0
 offset_bottom = 59.0
 mouse_filter = 2
 theme_override_constants/separation = 8
@@ -101,3 +101,42 @@ offset_right = 328.0
 offset_bottom = 152.0
 theme_override_fonts/font = ExtResource("7_edrxy")
 text = "Reset Counter"
+
+[node name="LEDActivatedLabel" type="Label" parent="." unique_id=1020153136]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 24.0
+offset_top = 264.0
+offset_right = 184.0
+offset_bottom = 295.0
+theme_override_fonts/font = ExtResource("7_edrxy")
+theme_override_font_sizes/font_size = 20
+text = "LED Activated"
+vertical_alignment = 1
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="." unique_id=543816664]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 312.0
+offset_right = 496.0
+offset_bottom = 362.0
+
+[node name="Label" type="Label" parent="HBoxContainer2" unique_id=2113864287]
+layout_mode = 2
+text = "LED Color"
+
+[node name="ColorPickerButton" type="ColorPickerButton" parent="HBoxContainer2" unique_id=383288993]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 50)
+custom_maximum_size = Vector2(150, 50)
+layout_mode = 2
+color = Color(0.7525973, 0.37596384, 0.05460217, 1)
+
+[node name="ButtonLedActive" type="CheckButton" parent="." unique_id=1038510164]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 216.0
+offset_top = 264.0
+offset_right = 260.0
+offset_bottom = 296.0
+button_pressed = true
