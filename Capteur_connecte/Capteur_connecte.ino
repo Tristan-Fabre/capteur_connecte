@@ -1,29 +1,20 @@
 #include <DHT.h>
 #include <DHT_U.h>
-
 #include <MPS.h>
 #include "config.h"
 
 // ---- Structures de payload et filets de sécurité ----
-// placer ici vos structures de payloads, par exemple :
-// struct __attribute__((packed)) SomePayload { // __attribute__((packed)) permet de contrôler la disposition des octets de celle-ci
-//   uint8_t someVariableA;
-//   int16_t someVariableB;
-// };
-// static_assert(sizeof(SomePayload) == 3, "SomePayload = 3 octets"); // Filet de sécurité à la compilation
-
-
-
 struct __attribute__((packed)) CounterPayload 
 {
   uint32_t value;
 };
 
-struct __attribute__((packed)) DHTPayload 
+struct __attribute__((packed)) DhtPayload 
 {
-  int16_t degree;
-  uint8_t humidity; 
+  int16_t temperatureDecimalCelciusDegrees;
+  uint8_t humidityDecimalPercentage;
 };
+
 struct __attribute__((packed)) LedPayload
 {
   uint8_t isLedActive;
@@ -35,76 +26,74 @@ struct __attribute__((packed)) LedPayload
 
 static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
 static_assert(sizeof(LedPayload) == 4, "LedPayload = 4 octets");
-static_assert(sizeof(DHTPayload) == 3, "TemperaturePayload = 3 octets");
-// ---- Variables globales ----
-// placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
-static CounterPayload counter = {0};
-static DHTPayload dhtP = {0, 0};
-static LedPayload led = {};
+static_assert(sizeof(DhtPayload) == 3, "DhtPayload = 3 octets");
 
-static const uint8_t ledPin = 2;
-static const uint8_t pinDHT = 0; //variable pour la sortie de pin du DHT
-DHT dht(pinDHT, DHT11); //création de l'objet dht pour lire la température et l'humidité
+// ---- Variables globales ----
+static const uint8_t kLedPin = 2;
+static const uint8_t kDhtPin = 0;
+
+DHT dht(kDhtPin, DHT11); //création de l'objet dht pour lire la température et l'humidité
+
+static CounterPayload counterPayload = {0};
+static DhtPayload dhtPayload = {0, 0};
+static LedPayload ledPayload = {};
 
 // ---- Subjects ----
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
-// ... ajoutez vos sujets ici sur le même schéma que le heartbeat, mais en précisant la donnée envoyée,
-// par exemple : `constexpr mps::Subject kSubStatusSomeData = mps::makeSubject("status_" DEVICE_NAME "_some_data");`
-// ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
 constexpr mps::Subject kSubStatusCounter = mps::makeSubject("status_" DEVICE_NAME "_counter");
 constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME "_reset_counter");
-constexpr mps::Subject kSubStatusDHT = mps::makeSubject("status_" DEVICE_NAME "_dht");
+constexpr mps::Subject kSubStatusDht = mps::makeSubject("status_" DEVICE_NAME "_dht");
 constexpr mps::Subject kSubSetLedColor = mps::makeSubject("set_" DEVICE_NAME "_led_color");
 constexpr mps::Subject kSubCmdSwitchLedState = mps::makeSubject("cmd_" DEVICE_NAME "_switch_led_state");
 
 // ---- Callbacks ----
-// Appelé lors de l'ouverture de la session (callback)
+
+// @brief Callback déclenché lors de l'ouverture d'une session. Elle publie l'état initial du capteur.
 static void onSessionOpened() 
 {
   // Republication de l'état initial du capteur, la passerelle ne garde rien
-  MPS.publishValue(kSubStatusCounter, counter);
-  MPS.publishValue(kSubStatusDHT, dhtP);
+  MPS.publishValue(kSubStatusCounter, counterPayload);
+  MPS.publishValue(kSubStatusDht, dhtPayload);
 }
 
-// Appelé en cas d'échec d'envoi (callback)
+// @brief Callback déclenché lorsqu'un envoi a échoué.
 static void onSendFailed(uint16_t sequenceNumber, uint32_t subjectId, mps::SendFailureReason, mps::AcknowledgementStatus) 
 {
   Serial.printf("/!\\ envoi %u (subject 0x%08lX) perdu\n", sequenceNumber, (unsigned long)subjectId);
 }
 
-// ... ajoutez vos callbacks ici, ex : 
-// static void onCmdSomeOrder(const mps::FrameView& message, void*) {
-//   SomePayload payload;
-//   if(!mps::readPayloadAs(message, &payload)) return;
-//   Serial.printf("Donnée : %02X\n", payload.someVariableA);
-// }
-
+// @brief Callback déclenché lors de la remise à zéro du compteur.
 static void onCmdResetCounter(const mps::FrameView& message, void*) 
 {
   if (message.payloadLength != 0) return; // ce format n'a pas de payload
-  counter.value = 0;
-  MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
+  counterPayload.value = 0;
+
+  MPS.publishValue(kSubStatusCounter, counterPayload);
 }
 
+// @brief Callback déclenché lors du changement d'état d'activation de la LED pour modifier son état.
 static void onCmdSwitchLedState(const mps::FrameView& message, void*)
 {
-  if (message.payloadLength != 1) return;
+  if (!mps::readPayloadAs(message, &ledPayload)) return; // ce format a un payload d'un octet
 
-  led.isLedActive = message.payload[0];
+  ledPayload.isLedActive = message.payload[0];
 }
 
+// @brief Callback déclenché lors du changement de la couleur de la LED pour modifier sa couleur.
 static void onSetLedColor(const mps::FrameView& message, void*)
 {
-  if (message.payloadLength != 3) return;
+  if (!mps::readPayloadAs(message, &ledPayload)) return; // ce format a un payload de trois octets
 
-  led.redValue = message.payload[0];
-  led.greenValue = message.payload[1];
-  led.blueValue = message.payload[2];
+  ledPayload.redValue = message.payload[0];
+  ledPayload.greenValue = message.payload[1];
+  ledPayload.blueValue = message.payload[2];
 }
 
 // ---- Fonctions appelées par setup/loop ----
-// envoi de heartbeats réguliers sans bloquer (comparaison au temps écoulé sans delay())
-void publishHeartbeat(){
+
+// @brief La fonction envoi des heartbeats réguliers sans bloquer l'exécution du programme. (comparaison au temps écoulé sans delay())
+void publishHeartbeat()
+{
   static uint32_t lastHeartbeatTimeMs = 0;
   static const uint16_t kHbPeriod = 1000;
 
@@ -117,14 +106,16 @@ void publishHeartbeat(){
   }
 }
 
+// @brief L'appel de cette fonction met à jour la couleur de la LED si elle est activée.
 void writeLed()
 {
-  if (led.isLedActive) rgbLedWrite(ledPin, led.redValue, led.greenValue, led.blueValue);
-  else rgbLedWrite(ledPin, 0, 0, 0);
+  if (ledPayload.isLedActive) rgbLedWrite(kLedPin, ledPayload.redValue, ledPayload.greenValue, ledPayload.blueValue);
+  else rgbLedWrite(kLedPin, 0, 0, 0);
 }
 
 // ---- Fonctions Arduino ----
-// Exécutée une fois au démarrage
+
+// @brief La fonction est appelée une fois au démarrage. Elle s'occupe d'initialiser et d'enregistrer les données
 void setup() 
 {
   Serial.begin(115200); // Démarrage de la communication série à 115200 bauds (sortie des Serial.print.. par exemple)
@@ -133,9 +124,7 @@ void setup()
   // enregistrement des callbacks
   MPS.setRegisteredCallback(onSessionOpened);
   MPS.setSendFailedCallback(onSendFailed);
-  // ... ajoutez vos callbacks à l'aide de MPS.on(const mps::Subject& subject, mps::MessageHandler handler, void* userContext = nullptr)
-  // par exemple :
-  // MPS.on(kSubCmdSomeOrder, onCmdSomeOrder);
+
   MPS.on(kSubCmdResetCounter, onCmdResetCounter);
   MPS.on(kSubCmdSwitchLedState, onCmdSwitchLedState);
   MPS.on(kSubSetLedColor, onSetLedColor);
@@ -150,11 +139,12 @@ void setup()
 
   // démarrage du client MPS
   if(!MPS.begin(kGatewayMacAddress, DEVICE_NAME, kWifiChannel)) Serial.println("MPS: demarrage impossible");
+
   dht.begin();
   writeLed();
 }
 
-// Exécutée en boucle (= while(true))
+// @brief La fonction est exécutée en boucle, permettant d'y ajouter les évènements.
 void loop() 
 {
   // appel de la boucle MPS (/!\ du code bloquant dans votre boucle loop() pourrait occasionner des problèmes de connexion)
@@ -164,26 +154,17 @@ void loop()
   publishHeartbeat();
   writeLed();
   
-  // ... ajoutez vos envois de données et autres comportements **non bloquants**
-  // par exemple :
-  // static uint32_t lastDataStatusTimeMs = 0;
-  // if(millis() - lastDataStatusTimeMs >= 2000){
-  //   lastDataStatusTimeMs = millis();
-  //   SomePayload payload = {0, 0};
-  //   payload.someVariableA = digitalRead(3);
-  //   payload.someVariableB = analogRead(5);
-  //   MPS.publishValue(kSubStatusSomeData, payload);
-  // }
   static uint32_t lastCounterTimeMs = 0;
   if (millis() - lastCounterTimeMs >= 2000) 
   {
     lastCounterTimeMs = millis();
-    counter.value++;
+    counterPayload.value++;
 
-    MPS.publishValue(kSubStatusCounter, counter);
-    //on multiplie par 10 pour obtenir la valeur à la dixième près et côté godot on multiplie par 0.1 pour avoir la bonne précision
-    dhtP.degree = (dht.readTemperature() * 10);
-    dhtP.humidity = (dht.readHumidity()*10);
-    MPS.publishValue(kSubStatusDHT, dhtP);
+    // On multiplie le résultat par 10 pour obtenir la valeur à la dixième près et côté godot on multiplie par 0.1 pour avoir la bonne précision
+    dhtPayload.temperatureDecimalCelciusDegrees = (dht.readTemperature() * 10);
+    dhtPayload.humidityDecimalPercentage = (dht.readHumidity() * 10);
+
+    MPS.publishValue(kSubStatusDht, dhtPayload);
+    MPS.publishValue(kSubStatusCounter, counterPayload);
   }
 }
