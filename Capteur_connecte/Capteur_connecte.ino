@@ -15,15 +15,15 @@
 // };
 // static_assert(sizeof(SomePayload) == 3, "SomePayload = 3 octets"); // Filet de sécurité à la compilation
 
-uint8_t pinTemperature = 0;
-DHT dht(pinTemperature, DHT11);
+uint8_t pinDHT = 0; //variable pour la sortie de pin du DHT
+DHT dht(pinDHT, DHT11); //création de l'objet dht pour lire la température et l'humidité
 
 struct __attribute__((packed)) CounterPayload 
 {
   uint32_t value;
 };
 
-struct __attribute__((packed)) DHTPayload
+struct __attribute__((packed)) DHTPayload 
 {
   int16_t degree;
   uint8_t humidity; 
@@ -141,15 +141,9 @@ void loop() {
     lastCounterTimeMs = millis();
     counter.value++;
     MPS.publishValue(kSubStatusCounter, counter);
-    dhtP.degree = (int16_t)(dht.readTemperature() * 10);
-    dhtP.humidity = dht.readHumidity();
+    //on multiplie par 10 pour obtenir la valeur à la dixième près et côté godot on multiplie par 0.1 pour avoir la bonne précision
+    dhtP.degree = (dht.readTemperature() * 10);
+    dhtP.humidity = (dht.readHumidity()*10);
     MPS.publishValue(kSubStatusDHT, dhtP);
-
-    Serial.println("temperature");
-    Serial.print(dhtP.degree);
-    Serial.println(" °C");
-    Serial.println("humidity");
-    Serial.print(dhtP.humidity);
-    Serial.println("%");
   }
 }

@@ -5,11 +5,11 @@ const DEVICE_NAME = "sensor_h"
 const SUB_HB = "hb_" + DEVICE_NAME
 const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
 const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
+const SUB_STATUS_DHT = "status_"+DEVICE_NAME+"_dht"
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
 const HB_BLINK_S := 0.5
-const SUB_STATUS_DHT = "status_"+DEVICE_NAME+"_dht"
 
 # ---- VARIABLES ----
 var _node_id: int = -1
@@ -61,8 +61,8 @@ func on_message(subject_name: String, source_id: int, _payload: PackedByteArray)
 			%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
 		SUB_STATUS_DHT:
 			if _payload.size() != 3: return
-			%TemperatureLabel.text = "Temperature: %d" % (float(_payload.decode_u16(0)) * 0.1)
-			%HumidityLabel.text = "Humidity: %d" % _payload.decode_u8(2)
+			%TemperatureLabel.text = "Temperature: %.1f °C" % (_payload.decode_u16(0)*0.1)
+			%HumidityLabel.text = "Humidity: %.1f" % (_payload.decode_u8(2)*0.1) +"%"
 	
 
 
@@ -80,6 +80,8 @@ func _on_sensor_connected():
 
 func _on_sensor_disconnected():
 	%IDLabel.text = "node_id: ∅"
+	%TemperatureLabel.text = "Temperature: ∅" 
+	%HumidityLabel.text = "Humidity: ∅"
 	%ConnectedIcon.state = false
 	
 
