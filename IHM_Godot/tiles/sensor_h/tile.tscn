@@ -126,6 +126,16 @@ layout_mode = 2
 text = "LED Color"
 
 [node name="ColorPickerButton" type="ColorPickerButton" parent="HBoxContainer2" unique_id=383288993]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 custom_maximum_size = Vector2(150, 50)
 layout_mode = 2
+
+[node name="ButtonLedActive" type="CheckButton" parent="." unique_id=1038510164]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 320.0
+offset_top = 272.0
+offset_right = 364.0
+offset_bottom = 296.0
+button_pressed = true

@@ -5,7 +5,9 @@ const DEVICE_NAME = "sensor_h"
 const SUB_HB = "hb_" + DEVICE_NAME
 const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
 const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
-const SUB_STATUS_LED = "status_" + DEVICE_NAME + "LED"
+const SUB_STATUS_LED = "status_" + DEVICE_NAME + "_led"
+const SUB_CMD_SWITCH_STATE = "cmd_" + DEVICE_NAME + "_switch_led_state"
+const SUB_SET_LED_COLOR = "set_" + DEVICE_NAME + "_led_color"
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
@@ -24,11 +26,12 @@ var _connected: bool = false:
 		else:
 			_on_sensor_disconnected()
 
-
 func get_subscriptions() -> PackedStringArray:
 	var subscriptions: PackedStringArray = []
+	# sans ces lignes, on_message ne reçoit rien
 	subscriptions.append(SUB_HB)
-	subscriptions.append(SUB_STATUS_COUNTER) # sans cette ligne, on_message ne reçoit rien
+	subscriptions.append(SUB_STATUS_COUNTER)
+	subscriptions.append(SUB_STATUS_LED)
 	return subscriptions
 
 
@@ -53,6 +56,7 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 func on_message(subject_name: String, source_id: int, _payload: PackedByteArray) -> void:
 	if subject_name == SUB_HB: _on_hb(source_id)
 	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
+	
 	# Ajoutez vos messages à la suite
 	if subject_name == SUB_STATUS_COUNTER:
 		if _payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
@@ -88,6 +92,15 @@ func _on_hb(source_id: int):
 	_seconds_since_hb = 0.0
 	_connected = true
 
+## @brief Initialise la tuile
 func _ready() -> void:
 	super() # obligatoire : c'est lui qui abonne la tuile
+	
 	%ResetButton.pressed.connect(func(): publish(SUB_CMD_RESET, PackedByteArray(), true))
+	%ColorPickerButton.color_changed.connect(func (led_color: Color): 
+		var payload = PackedByteArray([led_color.r8, led_color.g8, led_color.b8]) # Le tableau a une taille d'un octet par couleur
+		publish(SUB_SET_LED_COLOR, payload, true))
+
+	%ButtonLedActive.toggled.connect(func(is_led_active: bool): 
+		var payload = PackedByteArray([is_led_active]) # Le tableau a une taille d'un octet puisqu'un bool est équivalent un uint8_t
+		publish(SUB_CMD_SWITCH_STATE, payload, true))
