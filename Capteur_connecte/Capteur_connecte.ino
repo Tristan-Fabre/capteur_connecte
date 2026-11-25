@@ -80,7 +80,7 @@ static void onCmdResetCounter(const mps::FrameView& message, void*)
 // @brief Callback déclenché lors du changement d'état d'activation de la LED pour modifier son état. L'affichage est ensuite fait par writeLed() dans loop().
 static void onCmdSwitchLedState(const mps::FrameView& message, void*)
 {
-  if (!mps::readPayloadAs(message, &ledPayload)) return; // ce format a un payload d'un octet
+  if (message.payloadLength != 1) return;
 
   ledPayload.isLedActive = message.payload[0];
 }
@@ -88,7 +88,7 @@ static void onCmdSwitchLedState(const mps::FrameView& message, void*)
 // @brief Callback déclenché lors du changement de la couleur de la LED pour modifier sa couleur. Conserve la couleur de la LED même éteinte, pour se rallumer dans la même teinte.
 static void onSetLedColor(const mps::FrameView& message, void*)
 {
-  if (!mps::readPayloadAs(message, &ledPayload)) return; // ce format a un payload de trois octets
+  if (message.payloadLength != 3) return;
 
   ledPayload.redValue = message.payload[0];
   ledPayload.greenValue = message.payload[1];

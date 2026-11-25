@@ -75,8 +75,8 @@ func on_message(subject_name: String, source_id: int, _payload: PackedByteArray)
 		SUB_STATUS_DHT:
 			if _payload.size() != 3: return
 			# Température signée (int16) en dixièmes de °C ; humidité en % entier
-			%TemperatureLabel.text = "Temperature: %.1f °C" % (_payload.decode_s16(0) * 0.1)
-			%HumidityLabel.text = "Humidity: %d %%" % _payload.decode_u8(2)
+			%TemperatureLabel.text = "Temperature: %.1f °C" % (_payload.decode_u16(0)*0.1)
+			%HumidityLabel.text = "Humidity: %.1f" % (_payload.decode_u8(2)*0.1) +"%"
 
 
 ## Fait avancer le chrono depuis le dernier heartbeat, anime l'icône de heartbeat
@@ -128,7 +128,6 @@ func _send_led_color(led_color: Color) -> void:
 func _send_led_state(is_led_active: bool) -> void:
 	var payload = PackedByteArray([is_led_active])
 	publish(SUB_CMD_SWITCH_STATE, payload, true)
-
 
 ## Initialise la tuile : abonnement aux subjects puis connexion des boutons aux commandes.
 func _ready() -> void:
