@@ -38,6 +38,8 @@ static_assert(sizeof(DhtPayload) == 3, "DhtPayload = 3 octets");
 static const uint8_t kLedPin = 2;
 static const uint8_t kDhtPin = 0;
 
+static const uint32_t kSerialBaudRate = 115200;
+
 DHT dht(kDhtPin, DHT11); //création de l'objet dht pour lire la température et l'humidité
 
 static CounterPayload counterPayload = {0};
@@ -124,7 +126,7 @@ void writeLed()
 // @brief La fonction est appelée une fois au démarrage. Elle s'occupe d'initialiser et d'enregistrer les données
 void setup() 
 {
-  Serial.begin(115200); // Démarrage de la communication série à 115200 bauds (sortie des Serial.print.. par exemple)
+  Serial.begin(kSerialBaudRate); // Démarrage de la communication série à 115200 bauds (sortie des Serial.print.. par exemple)
   MPS.setLogOutput(&Serial); // Définition de la sortie des messages de log de la lib MPS
 
   // enregistrement des callbacks
@@ -137,7 +139,7 @@ void setup()
 
   // constante d'adresse vide pour vérifier que l'adresse a été définie dans config.h
   static const uint8_t kUnsetMacAddress[6] = {0, 0, 0, 0, 0, 0};
-  if(memcmp(kGatewayMacAddress, kUnsetMacAddress, 6) == 0) 
+  if(memcmp(kGatewayMacAddress, kUnsetMacAddress, sizeof(kGatewayMacAddress)) == 0) 
   {
     Serial.println("MPS: renseignez kGatewayMacAddress dans config.h (adresse affichee par l'IHM)");
     return;

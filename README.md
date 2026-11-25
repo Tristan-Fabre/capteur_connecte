@@ -86,3 +86,8 @@ Sans cela, la LED reste éteinte (état initial = tout à 0). Les commandes sont
 
 `hb_sensor_h`, `status_sensor_h_counter`, `status_sensor_h_dht`.
 Les subjects `cmd_` et `set_` sont publiés par l'IHM, pas souscrits.
+
+## Auteurs
+
+- Florian Pleigneur
+- Tristan Fabre

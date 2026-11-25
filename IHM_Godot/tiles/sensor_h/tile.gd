@@ -13,6 +13,15 @@ const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
 const HB_BLINK_S := 0.5
 
+const COUNTER_OFFSET := 0
+const TEMPERATURE_OFFSET := 0
+const HUMIDITY_OFFSET := 2
+
+const COUNTER_PAYLOAD_SIZE := 4
+const DHT_PAYLOAD_SIZE := 3
+
+const PERCENTAGE_DIVISION := 0.1
+
 # ---- VARIABLES ----
 ## Identifiant du capteur attribué par la passerelle (-1 tant qu'inconnu).
 var _node_id: int = -1
@@ -64,19 +73,19 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 
 ## Point d'entrée des messages reçus : route le heartbeat et affiche les mesures
 ## du capteur (compteur, température, humidité). Ignore les payloads de mauvaise taille.
-func on_message(subject_name: String, source_id: int, _payload: PackedByteArray) -> void:
+func on_message(subject_name: String, source_id: int, payload: PackedByteArray) -> void:
 	if subject_name == SUB_HB: _on_hb(source_id)
 	if source_id != _node_id: return # Plusieurs capteurs peuvent partager les mêmes subjects
 	
 	match subject_name:
 		SUB_STATUS_COUNTER:
-			if _payload.size() != 4: return # Le contrat : 4 octets, sinon on ignore
-			%CounterLabel.text = "Counter: %d" % _payload.decode_u32(0)
+			if payload.size() != COUNTER_PAYLOAD_SIZE: return # Le contrat : 4 octets, sinon on ignore
+			%CounterLabel.text = "Counter: %d" % payload.decode_u32(COUNTER_OFFSET)
 		SUB_STATUS_DHT:
-			if _payload.size() != 3: return
+			if payload.size() != DHT_PAYLOAD_SIZE: return
 			# Température signée (int16) en dixièmes de °C ; humidité en % entier
-			%TemperatureLabel.text = "Temperature: %.1f °C" % (_payload.decode_u16(0)*0.1)
-			%HumidityLabel.text = "Humidity: %.1f" % (_payload.decode_u8(2)*0.1) +"%"
+			%TemperatureLabel.text = "Temperature: %.1f °C" % (payload.decode_u16(TEMPERATURE_OFFSET) * PERCENTAGE_DIVISION)
+			%HumidityLabel.text = "Humidity: %.1f" % (payload.decode_u8(HUMIDITY_OFFSET) * PERCENTAGE_DIVISION) +"%"
 
 
 ## Fait avancer le chrono depuis le dernier heartbeat, anime l'icône de heartbeat
