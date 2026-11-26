@@ -102,6 +102,9 @@ func _process(delta: float) -> void:
 func _on_sensor_connected():
 	%IDLabel.text = "node_id: %d" % _node_id
 	%ConnectedIcon.state = true
+	%ButtonLedActive.disabled = false
+	%ColorPickerButton.disabled = false
+	%ResetButton.disabled = false
 	
 	_send_led_color(%ColorPickerButton.color)
 	_send_led_state(%ButtonLedActive.button_pressed)
@@ -113,7 +116,11 @@ func _on_sensor_disconnected():
 	%IDLabel.text = "node_id: ∅"
 	%TemperatureLabel.text = "Temperature: ∅" 
 	%HumidityLabel.text = "Humidity: ∅"
+	%CounterLabel.text = "Counter: ∅"
 	%ConnectedIcon.state = false
+	%ButtonLedActive.disabled = true
+	%ColorPickerButton.disabled = true
+	%ResetButton.disabled = true
 
 
 ## Traite un heartbeat : (re)connecte le capteur et relance la temporisation.
